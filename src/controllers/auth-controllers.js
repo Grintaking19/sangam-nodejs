@@ -2,20 +2,36 @@ import express from "express";
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import handleBadRequest from "../utils/handleBadRequest.js";
+import { validateRequiredFields } from "../utils/validateRequiredFields.js";
 import { generateToken } from "../utils/generateToken.js";
 import { getTimeInMilliseconds } from "../utils/getTimeInMilliseconds.js";
 // REMOVE the role later (Set it to user by default and only admin manually from database)
 const registerUser = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
-    const userExists = User.find({ $or: [{ username }, { email }] });
-    if (userExists > 0) {
+
+    const missingFields = validateRequiredFields(req.body, [
+      "username",
+      "email",
+      "password",
+    ]);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required field(s): ${missingFields.join(", ")}`,
+      });
+    }
+
+    const userExists = await User.findOne({ $or: [{ username }, { email }] });
+    if (userExists) {
       return res.status(409).json({
         success: false,
         message: "User already exists with the same username or email!",
       });
     }
-    const salt = await bcrypt.genSalt(process.env.SALT_ROUNDS);
+
+    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS));
     const hashedPassword = await bcrypt.hash(password, salt);
     const newCreatedUser = new User({
       username: username,
@@ -50,6 +66,16 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
+    const missingFields = validateRequiredFields(req.body, [
+      "usernameOrEmail",
+      "password",
+    ]);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required field(s): ${missingFields.join(", ")}`,
+      });
+    }
     const { usernameOrEmail, password } = req.body;
     // Check if you have user with this username or email
     const userExists = await User.findOne({
@@ -60,7 +86,7 @@ const loginUser = async (req, res) => {
       // Check if password is correct
       const match = await bcrypt.compare(password, userExists.password);
       if (match) {
-        payload = {
+        const payload = {
           userId: userExists._id,
           role: userExists.role,
         };
@@ -88,7 +114,7 @@ const logoutUser = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: getTimeInMilliseconds(options.expiresIn),
+      expires: new Date(Date.now() + getTimeInMilliseconds("1s")), // Set the cookie to expire in 1 second
     });
 
     res.status(200).json({
