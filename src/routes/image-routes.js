@@ -9,6 +9,6 @@ const router = express.Router();
 router.post("/upload", authMiddleware, adminMiddleware, uploadMiddleware.single("image"), uploadImage);
 
 // Both admin and regular users can view all images
-router.get("/", authMiddleware, getAllImages);
+router.get("/get", authMiddleware, getAllImages);
 
 export default router;

@@ -9,7 +9,7 @@ const uploadImage = async (req, res) => {
     const newImage = new Image({
       url,
       publicId: public_id,
-      uploadedBy: req.user._id,
+      uploadedBy: req.user.userId,
     });
     await newImage.save();
     res
