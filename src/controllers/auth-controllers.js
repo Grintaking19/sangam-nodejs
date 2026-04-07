@@ -44,6 +44,7 @@ const registerUser = async (req, res) => {
       const payload = {
         userId: newCreatedUser._id,
         role: newCreatedUser.role,
+        username: newCreatedUser.username,
       };
       const token = generateToken(payload, res);
 
@@ -89,6 +90,7 @@ const loginUser = async (req, res) => {
         const payload = {
           userId: userExists._id,
           role: userExists.role,
+          username: userExists.username,
         };
         const token = generateToken(payload, res);
         return res.status(200).json({
