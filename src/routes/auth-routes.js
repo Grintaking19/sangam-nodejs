@@ -3,7 +3,10 @@ import {
   registerUser,
   loginUser,
   logoutUser,
+  changePassword,
 } from "../controllers/auth-controllers.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -15,5 +18,8 @@ router.post("/login", loginUser);
 
 // Logout
 router.post("/logout", logoutUser);
+
+// Change password
+router.put("/change-password", authMiddleware, changePassword);
 
 export default router;

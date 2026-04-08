@@ -128,4 +128,55 @@ const logoutUser = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, logoutUser };
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const missingFields = validateRequiredFields(req.body, [
+      "currentPassword",
+      "newPassword",
+    ]);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required field(s): ${missingFields.join(", ")}`,
+      });
+    }
+    // Check if the user exists in the database
+    const user = await User.findById(req.user.userId); // From the auth middleware
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    // Check if the current password is correct
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+    // Check if the new password is the same as the current password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password cannot be the same as the current password",
+      });
+    }
+    // Hash the new password and update it in the database
+    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS));
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+    user.password = hashedNewPassword;
+    await user.save();
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    handleBadRequest(error, res);
+  }
+};
+
+export { registerUser, loginUser, logoutUser, changePassword };
