@@ -1,8 +1,10 @@
 import { uploadToCloudinary } from "../helpers/cloudinaryHelper.js";
+import fs from "fs";
 import Image from "../models/Image.js";
 import cloudinary from "../config/cloudinary.js";
 const uploadImage = async (req, res) => {
   try {
+    // console.log(req)
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -13,6 +15,8 @@ const uploadImage = async (req, res) => {
       uploadedBy: req.user.userId,
     });
     await newImage.save();
+    // delete the file from local storage after uploading to Cloudinary
+    fs.unlinkSync(req.file.path);
     res.status(201).json({
       success: true,
       message: "Image uploaded successfully",
@@ -32,13 +36,22 @@ const getAllImages = async (req, res) => {
     const skip = (page - 1) * limit;
     const sortBy = req.query.sortBy || "createdAt";
     const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
-
+    const totalImages = await Image.countDocuments();
+    const totalPages = Math.ceil(totalImages / limit);
     const images = await Image.find({})
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit);
 
-    res.status(200).json({ success: true, images });
+    res
+      .status(200)
+      .json({
+        success: true,
+        currentPage: page,
+        totalPages: totalPages,
+        totalImages: totalImages,
+        images,
+      });
   } catch (error) {
     console.error("Error fetching images:", error);
     res.status(500).json({ success: false, error: "Error fetching images" });

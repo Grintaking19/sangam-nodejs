@@ -6,11 +6,11 @@ import {
 } from "../controllers/image-controllers.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-// import uploadMiddleware from "../middleware/uploadMiddleware.js";
+import uploadMiddleware from "../middleware/uploadMiddleware.js";
 const router = express.Router();
 
 // Only admin users can upload images
-router.post("/upload", authMiddleware, adminMiddleware, uploadImage);
+router.post("/upload", authMiddleware, adminMiddleware, uploadMiddleware.single("image"), uploadImage);
 
 router.delete("/delete/:id", authMiddleware, adminMiddleware, deleteImage);
 
